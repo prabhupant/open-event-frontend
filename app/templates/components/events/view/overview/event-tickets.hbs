@@ -15,7 +15,7 @@
       </tr>
       <tr>
         <td>{{t 'Sales (amount)'}}</td>
-        <td>US$ {{number-format data.orderStat.sales.completed}}</td>
+        <td>{{currency-symbol data.event.paymentCurrency}} {{format-number data.orderStat.sales.completed}}</td>
       </tr>
     </tbody>
   </table>
@@ -37,6 +37,10 @@
           <td>{{ticket.quantity}}</td>
           <td>{{sub ticket.quantity ticket.orderStatistics.tickets.completed}}</td>
         </tr>
+      {{else}}
+        <div class="ui basic segment">
+          {{t 'There are no tickets for this event'}}
+        </div>
       {{/each}}
     </tbody>
   </table>

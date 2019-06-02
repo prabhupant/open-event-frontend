@@ -2,6 +2,8 @@ import Component from '@ember/component';
 import FormMixin from 'open-event-frontend/mixins/form';
 
 export default Component.extend(FormMixin, {
+  autoScrollToErrors: false,
+
   getValidationRules() {
     return {
       inline : true,
@@ -13,11 +15,11 @@ export default Component.extend(FormMixin, {
           rules      : [
             {
               type   : 'empty',
-              prompt : this.get('l10n').t('Please enter your email ID')
+              prompt : this.l10n.t('Please enter your email ID')
             },
             {
               type   : 'email',
-              prompt : this.get('l10n').t('Please enter a valid email ID')
+              prompt : this.l10n.t('Please enter a valid email ID')
             }
           ]
         },
@@ -26,7 +28,7 @@ export default Component.extend(FormMixin, {
           rules      : [
             {
               type   : 'empty',
-              prompt : this.get('l10n').t('Please enter your password')
+              prompt : this.l10n.t('Please enter your password')
             }
           ]
         }
@@ -36,7 +38,7 @@ export default Component.extend(FormMixin, {
   actions: {
     submit() {
       this.onValid(() => {
-        if (this.get('userExists')) {
+        if (this.userExists) {
           this.loginExistingUser(this.email, this.password);
         } else {
           this.createNewUserViaEmail(this.email);

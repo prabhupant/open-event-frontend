@@ -9,9 +9,9 @@ export default Controller.extend({
     },
     {
       propertyName : 'startsAt',
-      template     : 'components/ui-table/cell/cell-simple-date',
+      template     : 'components/ui-table/cell/cell-event-date',
       dateFormat   : 'MMMM DD, YYYY - HH:mm A',
-      title        : 'Date'
+      title        : 'Date And Time'
     },
     {
       propertyName     : 'sessionsByState',
@@ -21,7 +21,8 @@ export default Controller.extend({
       disableFiltering : true
     },
     {
-      propertyName     : 'speakers.length',
+      propertyName     : 'eventStatisticsGeneral.speakers',
+      template         : 'components/ui-table/cell/cell-speakers-dashboard',
       title            : 'Speakers',
       disableSorting   : true,
       disableFiltering : true
@@ -62,14 +63,14 @@ export default Controller.extend({
     },
     deleteEvent() {
       this.set('isLoading', true);
-      this.store.findRecord('event', this.get('eventId'), { backgroundReload: false }).then(function(event) {
+      this.store.findRecord('event', this.eventId, { backgroundReload: false }).then(function(event) {
         event.destroyRecord();
       })
         .then(() => {
-          this.notify.success(this.get('l10n').t('Event has been deleted successfully.'));
+          this.notify.success(this.l10n.t('Event has been deleted successfully.'));
         })
         .catch(() => {
-          this.notify.error(this.get('l10n').t('An unexpected error has occurred.'));
+          this.notify.error(this.l10n.t('An unexpected error has occurred.'));
         })
         .finally(() => {
           this.set('isLoading', false);

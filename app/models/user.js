@@ -5,7 +5,7 @@ import { inject as service } from '@ember/service';
 import attr from 'ember-data/attr';
 import ModelBase from 'open-event-frontend/models/base';
 import { hasMany } from 'ember-data/relationships';
-import { toString } from 'lodash';
+import { toString } from 'lodash-es';
 
 export default ModelBase.extend({
 
@@ -15,7 +15,7 @@ export default ModelBase.extend({
   password               : attr('string'),
   isVerified             : attr('boolean', { readOnly: true }),
   isSuperAdmin           : attr('boolean', { readOnly: true }),
-  isAdmin                : attr('boolean', { readOnly: true }),
+  isAdmin                : attr('boolean'),
   isUserOrganizer        : attr('boolean'),
   isUserCoorganizer      : attr('boolean'),
   isUserTrackOrganizer   : attr('boolean'),
@@ -44,11 +44,18 @@ export default ModelBase.extend({
   facebookId: attr('string', { readOnly: true }),
 
   createdAt      : attr('moment', { readOnly: true }),
-  deletedAt      : attr('moment', { readOnly: true }),
+  deletedAt      : attr('moment'),
   lastAccessedAt : attr('moment', { readOnly: true }),
 
-  status: computed('lastAccessedAt', function() {
-    return (new Date().getMonth() - new Date(this.get('lastAccessedAt')).getMonth() < 1);
+  status: computed('lastAccessedAt', 'deletedAt', function() {
+    if (this.deletedAt == null) {
+      if (this.lastAccessedAt == null) {
+        return 'inactive';
+      }
+      return (new Date().getMonth() - new Date(this.lastAccessedAt).getMonth() <= 12) ? 'active' : 'inactive';
+    } else {
+      return 'deleted';
+    }
   }),
   isAnAdmin: or('isSuperAdmin', 'isAdmin'),
 
@@ -76,8 +83,8 @@ export default ModelBase.extend({
 
   _didUpdate: on('didUpdate', function(user) {
     if (toString(user.id) === toString(this.get('authManager.currentUser.id'))) {
-      user = this.get('store').peekRecord('user', user.id);
-      this.get('authManager').persistCurrentUser(user);
+      user = this.store.peekRecord('user', user.id);
+      this.authManager.persistCurrentUser(user);
     }
   })
 });

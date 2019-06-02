@@ -3,6 +3,7 @@ import moment from 'moment';
 import ModelBase from 'open-event-frontend/models/base';
 import { belongsTo, hasMany } from 'ember-data/relationships';
 import { computedDateTimeSplit } from 'open-event-frontend/utils/computed-helpers';
+import { computed } from '@ember/object';
 
 
 export default ModelBase.extend({
@@ -22,7 +23,8 @@ export default ModelBase.extend({
   signupUrl     : attr('string'),
   sendEmail     : attr('boolean'),
 
-  isMailSent: attr('boolean', { defaultValue: false }),
+  isLocked   : attr('boolean', { defaultValue: false }),
+  isMailSent : attr('boolean', { defaultValue: false }),
 
   createdAt      : attr('string'),
   deletedAt      : attr('string'),
@@ -34,6 +36,14 @@ export default ModelBase.extend({
   speakers       : hasMany('speaker'),
   event          : belongsTo('event'), // temporary
   creator        : belongsTo('user'),
+
+  status: computed('state', 'deletedAt', function() {
+    if (this.deletedAt !== null) {
+      return 'deleted';
+    } else {
+      return this.state;
+    }
+  }),
 
   startAtDate : computedDateTimeSplit.bind(this)('startsAt', 'date'),
   startAtTime : computedDateTimeSplit.bind(this)('startsAt', 'time'),

@@ -11,7 +11,7 @@ export default Controller.extend({
   filterDate  : null,
 
   callForSpeakersEvents: computed('filteredEvents.[]', function() {
-    return this.get('filteredEvents').filter(event => {
+    return this.filteredEvents.filter(event => {
       const callForPapers = event.get('speakersCall');
       const sessionEnabled = event.isSessionsSpeakersEnabled;
       if (!callForPapers || !callForPapers.get('startsAt')  || !callForPapers.get('endsAt')) {
@@ -22,6 +22,11 @@ export default Controller.extend({
       const privacyState = callForPapers.get('privacy');
       return (moment().isBetween(startDateTime, endDateTime) && (sessionEnabled) && (privacyState === 'public'));
     });
+  }),
+
+  featuredEvents: computed('filteredEvents.[]', function() {
+    return this.filteredEvents ? this.filteredEvents.filter(event => {return event.isFeatured}) : null;
+
   }),
 
   actions: {

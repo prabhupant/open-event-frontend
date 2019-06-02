@@ -1,12 +1,15 @@
 import Route from '@ember/routing/route';
+import moment from 'moment';
 
 export default Route.extend({
   titleToken() {
     switch (this.get('params.discount_status')) {
       case 'active':
-        return this.get('l10n').t('Active');
+        return this.l10n.t('Active');
       case 'inactive':
-        return this.get('l10n').t('Inactive');
+        return this.l10n.t('Inactive');
+      case 'expired':
+        return this.l10n.t('Expired');
     }
   },
   async model(params) {
@@ -15,17 +18,43 @@ export default Route.extend({
     if (params.discount_status === 'active') {
       filterOptions = [
         {
-          name : 'is-active',
-          op   : 'eq',
-          val  : true
+          and: [
+            {
+              name : 'valid_till',
+              op   : 'ge',
+              val  : moment().toISOString()
+            },
+            {
+              name : 'is-active',
+              op   : 'eq',
+              val  : true
+            }
+          ]
         }
       ];
     } else if (params.discount_status === 'inactive') {
       filterOptions = [
         {
-          name : 'is-active',
-          op   : 'eq',
-          val  : false
+          and: [
+            {
+              name : 'valid_till',
+              op   : 'ge',
+              val  : moment().toISOString()
+            },
+            {
+              name : 'is-active',
+              op   : 'eq',
+              val  : false
+            }
+          ]
+        }
+      ];
+    } else if (params.discount_status === 'expired') {
+      filterOptions = [
+        {
+          name : 'valid_till',
+          op   : 'lt',
+          val  : moment().toISOString()
         }
       ];
     } else {

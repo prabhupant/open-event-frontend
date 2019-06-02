@@ -40,7 +40,8 @@ export default Controller.extend({
       disableSorting : true
     },
     {
-      propertyName   : 'speakers.length',
+      propertyName   : 'eventStatisticsGeneral.speakers',
+      template       : 'components/ui-table/cell/cell-speakers-dashboard',
       title          : 'Speakers',
       disableSorting : true
     },
@@ -55,6 +56,12 @@ export default Controller.extend({
       template       : 'components/ui-table/cell/cell-link',
       title          : 'Public URL',
       disableSorting : true
+    },
+    {
+      propertyName   : 'is-featured',
+      template       : 'components/ui-table/cell/admin/event-is-featured',
+      title          : 'Featured Event',
+      disableSorting : false
     },
     {
       propertyName   : 'deletedAt',
@@ -78,16 +85,17 @@ export default Controller.extend({
     },
     deleteEvent() {
       this.set('isLoading', true);
-      this.store.findRecord('event', this.get('eventId'), { backgroundReload: false }).then(function(event) {
+      this.store.findRecord('event', this.eventId, { backgroundReload: false }).then(function(event) {
         event.destroyRecord();
       })
         .then(() => {
           this.set('isLoading', false);
-          this.notify.success(this.get('l10n').t('Event has been deleted successfully.'));
+          this.notify.success(this.l10n.t('Event has been deleted successfully.'));
+          this.send('refreshRoute');
         })
         .catch(() => {
           this.set('isLoading', false);
-          this.notify.error(this.get('l10n').t('An unexpected error has occurred.'));
+          this.notify.error(this.l10n.t('An unexpected error has occurred.'));
         });
       this.set('isEventDeleteModalOpen', false);
     },
@@ -96,15 +104,25 @@ export default Controller.extend({
       event.set('deletedAt', null);
       event.save({ adapterOptions: { getTrashed: true } })
         .then(() => {
-          this.notify.success(this.get('l10n').t('Event has been restored successfully.'));
+          this.notify.success(this.l10n.t('Event has been restored successfully.'));
           this.send('refreshRoute');
         })
         .catch(e => {
-          this.notify.error(this.get('l10n').t('An unexpected error has occurred.'));
+          this.notify.error(this.l10n.t('An unexpected error has occurred.'));
           console.warn(e);
         })
         .finally(() => {
           this.set('isLoading', false);
+        });
+    },
+    toggleFeatured(event) {
+      event.toggleProperty('isFeatured');
+      event.save()
+        .then(() => {
+          this.notify.success(this.l10n.t('Event details modified successfully'));
+        })
+        .catch(() => {
+          this.notify.error(this.l10n.t('An unexpected error has occurred.'));
         });
     }
   }

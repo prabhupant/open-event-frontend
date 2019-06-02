@@ -5,14 +5,16 @@ export default Controller.extend({
   token       : null,
   success     : false,
   error       : null,
+  isLoading   : false,
 
   verify(tokenVal) {
+    this.set('isLoading', true);
     let payload = {
       data: {
         token: tokenVal
       }
     };
-    return this.get('loader')
+    return this.loader
       .post('auth/verify-email', payload)
       .then(() => {
         this.set('success', true);
@@ -20,6 +22,9 @@ export default Controller.extend({
       .catch(reason => {
         this.set('error', reason);
         this.set('success', false);
+      })
+      .finally(() => {
+        this.set('isLoading', false);
       });
   }
 });

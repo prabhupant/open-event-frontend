@@ -13,7 +13,7 @@ export default Component.extend(FormMixin, {
           rules      : [
             {
               type   : 'empty',
-              prompt : this.get('l10n').t('Please enter the current password')
+              prompt : this.l10n.t('Please enter the current password')
             }
           ]
         },
@@ -22,11 +22,11 @@ export default Component.extend(FormMixin, {
           rules      : [
             {
               type   : 'empty',
-              prompt : this.get('l10n').t('Please enter a new password')
+              prompt : this.l10n.t('Please enter a new password')
             },
             {
-              type   : 'minLength[6]',
-              prompt : this.get('l10n').t('Your password must have at least {ruleValue} characters')
+              type   : 'minLength[8]',
+              prompt : this.l10n.t('Your password must have at least {ruleValue} characters')
             }
           ]
         },
@@ -35,7 +35,7 @@ export default Component.extend(FormMixin, {
           rules      : [
             {
               type   : 'match[password_new]',
-              prompt : this.get('l10n').t('Passwords do not match')
+              prompt : this.l10n.t('Passwords do not match')
             }
           ]
         }
@@ -44,6 +44,9 @@ export default Component.extend(FormMixin, {
   },
 
   actions: {
+    showPassword(fieldName) {
+      this.toggleProperty(`showPass${fieldName}`);
+    },
     submit() {
       this.onValid(() => {
         this.sendAction('changePassword', this.getProperties('passwordCurrent', 'passwordNew'));

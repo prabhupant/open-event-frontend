@@ -2,7 +2,6 @@ import Component from '@ember/component';
 import moment from 'moment';
 
 export default Component.extend({
-  classNames: ['ui', 'action', 'input', 'fluid'],
 
   dummyName     : null,
   dummyLocation : null,
@@ -12,7 +11,7 @@ export default Component.extend({
     let newStartDate = null;
     let newEndDate = null;
 
-    switch (this.get('filterDate')) {
+    switch (this.filterDate) {
 
       case 'all_dates':
         break;
@@ -56,9 +55,9 @@ export default Component.extend({
 
   init() {
     this._super(...arguments);
-    this.set('dummyLocation', this.get('location'));
-    this.set('dummyName', this.get('eventName'));
-    if (this.get('dummyName') || this.get('dummyLocation')) {this.set('disableClear', false)}
+    this.set('dummyLocation', this.location);
+    this.set('dummyName', this.eventName);
+    if (this.dummyName || this.dummyLocation) {this.set('disableClear', false)}
   },
   actions: {
     handleKeyPress() {
@@ -68,8 +67,8 @@ export default Component.extend({
     },
     search() {
       this.setDateFilter();
-      this.set('location', this.get('dummyLocation'));
-      this.set('eventName', this.get('dummyName'));
+      this.set('location', this.dummyLocation);
+      this.set('eventName', this.dummyName);
       this.set('disableClear', false);
     },
 
@@ -78,8 +77,8 @@ export default Component.extend({
       this.set('dummyName', null);
       this.set('filterDate', null);
       this.setDateFilter();
-      this.set('location', this.get('dummyLocation'));
-      this.set('eventName', this.get('dummyName'));
+      this.set('location', this.dummyLocation);
+      this.set('eventName', this.dummyName);
       this.set('disableClear', true);
     }
   }

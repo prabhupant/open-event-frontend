@@ -3,16 +3,18 @@ import Route from '@ember/routing/route';
 export default Route.extend({
   titleToken() {
     switch (this.get('params.sessions_state')) {
+      case 'confirmed':
+        return this.l10n.t('Confirmed');
       case 'pending':
-        return this.get('l10n').t('Pending');
+        return this.l10n.t('Pending');
       case 'accepted':
-        return this.get('l10n').t('Accepted');
+        return this.l10n.t('Accepted');
       case 'rejected':
-        return this.get('l10n').t('Rejected');
+        return this.l10n.t('Rejected');
       case 'deleted':
-        return this.get('l10n').t('Deleted');
+        return this.l10n.t('Deleted');
       default:
-        return this.get('l10n').t('Session');
+        return this.l10n.t('Session');
     }
   },
   model(params) {
@@ -41,6 +43,33 @@ export default Route.extend({
                 name : 'state',
                 op   : 'eq',
                 val  : 'pending'
+              }
+            ]
+        }
+      ];
+    } else if (params.sessions_state === 'confirmed') {
+      filterOptions = [
+        {
+          and:
+            [
+              {
+                name : 'event',
+                op   : 'has',
+                val  : {
+                  name : 'deleted-at',
+                  op   : 'eq',
+                  val  : null
+                }
+              },
+              {
+                name : 'deleted-at',
+                op   : 'eq',
+                val  : null
+              },
+              {
+                name : 'state',
+                op   : 'eq',
+                val  : 'confirmed'
               }
             ]
         }
@@ -124,27 +153,17 @@ export default Route.extend({
     } else {
       filterOptions = [
         {
-          and:
-            [
-              {
-                name : 'event',
-                op   : 'has',
-                val  : {
-                  name : 'deleted-at',
-                  op   : 'eq',
-                  val  : null
-                }
-              },
-              {
-                name : 'deleted-at',
-                op   : 'eq',
-                val  : null
-              }
-            ]
+          name : 'event',
+          op   : 'has',
+          val  : {
+            name : 'deleted-at',
+            op   : 'eq',
+            val  : null
+          }
         }
       ];
     }
-    return this.get('store').query('session', {
+    return this.store.query('session', {
       get_trashed  : true,
       include      : 'event,speakers',
       filter       : filterOptions,

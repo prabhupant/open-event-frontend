@@ -5,13 +5,16 @@ import { run } from '@ember/runloop';
 import { A } from '@ember/array';
 import ModelsTable from 'open-event-frontend/components/ui-table';
 import layout from 'open-event-frontend/templates/components/ui-table';
-import { merge, kebabCase } from 'lodash';
+import { merge, kebabCase } from 'lodash-es';
+import moment from 'moment';
 
 export default ModelsTable.extend({
 
   layout,
 
   isLoading: false,
+
+  isInitialLoad: true,
 
   isError: false,
 
@@ -36,25 +39,24 @@ export default ModelsTable.extend({
   arrangedContent : alias('filteredContent'),
 
   arrangedContentLength: computed('router.currentURL', 'filteredContent.meta', function() {
-    let itemsCountProperty = get(this, 'metaItemsCountProperty');
+    let itemsCountProperty = this.metaItemsCountProperty;
     let meta = get(this, 'filteredContent.meta') || {};
     return get(meta, itemsCountProperty) || 0;
   }),
 
   pagesCount: computed('router.currentURL', 'currentPageNumber', 'pageSize', function() {
-    let itemsCountProperty = get(this, 'metaItemsCountProperty');
-    let meta = get(this, 'filteredContent.meta') || {};
+    let itemsCountProperty = this.metaItemsCountProperty;
+    let meta = this.get('filteredContent.meta') || {};
     let items = (get(meta, itemsCountProperty));
-    let pageSize = get(this, 'pageSize');
     let pages = 0;
-    if (pageSize > items) {
+    if (this.pageSize > items) {
       this.$('.pagination').css({
         display: 'none'
       });
     } else {
       this.$('.pagination').removeAttr('style');
-      pages = parseInt((items / pageSize));
-      if (items % pageSize) {
+      pages = parseInt((items / this.pageSize));
+      if (items % this.pageSize) {
         pages = pages + 1;
       }
     }
@@ -62,47 +64,36 @@ export default ModelsTable.extend({
   }),
 
   gotoForwardEnabled: computed('currentPageNumber', 'pagesCount', function() {
-    let currentPageNumber = get(this, 'currentPageNumber');
-    let pagesCount = get(this, 'pagesCount');
-    return currentPageNumber < pagesCount;
+    return this.currentPageNumber < this.pagesCount;
   }),
 
   gotoBackwardEnabled: computed('currentPageNumber', function() {
-    let currentPageNumber = get(this, 'currentPageNumber');
-    return currentPageNumber > 1;
+    return this.currentPageNumber > 1;
   }),
 
   lastIndex: computed('router.currentURL', 'pageSize', 'currentPageNumber', 'arrangedContentLength', function() {
-    let pageMax = get(this, 'pageSize') * get(this, 'currentPageNumber');
-    let itemsCount = get(this, 'arrangedContentLength');
+    let pageMax = this.pageSize * this.currentPageNumber;
+    let itemsCount = this.arrangedContentLength;
     return Math.min(pageMax, itemsCount);
   }),
 
   _loadData() {
-    let data = get(this, 'data');
-    let currentPageNumber = get(this, 'currentPageNumber');
-    let pageSize = get(this, 'pageSize');
-    let columns = get(this, 'processedColumns');
-    let sortProperties = get(this, 'sortProperties');
-    let filterString = get(this, 'filterString');
-    var query, store, modelName;
-
-    if (!get(data, 'query')) {
+    let query, store, modelName;
+    if (!get(this.data, 'query')) {
       console.warn('You must use https://emberjs.com/api/data/classes/DS.Store.html#method_query for loading data');
-      store = get(this, 'store');
-      query = merge({}, get(this, 'query'));
-      modelName = get(this, 'modelName');
-
+      query = merge({}, this.query);
+      store = this.store;
+      modelName = this.modelName;
     } else {
-      query = merge({}, get(data, 'query'));
-      store = get(data, 'store');
-      modelName = get(data, 'type.modelName');
+      query = merge({}, get(this.data, 'query'));
+      store = get(this.data, 'store');
+      modelName = get(this.data, 'type.modelName');
     }
     query.filter = JSON.parse(query.filter || '[]');
-    query[get(this, 'filterQueryParameters.page')] = currentPageNumber;
-    query[get(this, 'filterQueryParameters.pageSize')] = pageSize;
+    query[get(this, 'filterQueryParameters.page')] = this.currentPageNumber;
+    query[get(this, 'filterQueryParameters.pageSize')] = this.pageSize;
 
-    let sort = sortProperties && get(sortProperties, 'firstObject');
+    let sort = this.sortProperties && get(this.sortProperties, 'firstObject');
     if (sort) {
       let [sortBy, sortDirection] = sort.split(':');
       query = this.sortingWrapper(query, sortBy, sortDirection.toUpperCase());
@@ -118,32 +109,44 @@ export default ModelsTable.extend({
     //   delete query[globalFilter];
     // }
 
-    let globalFilter = get(this, 'customGlobalFilter');
+    let globalFilter = this.customGlobalFilter;
     if (globalFilter) {
-      if (filterString) {
+      if (this.filterString) {
         query.filter.pushObject({
           name : globalFilter,
           op   : 'ilike',
-          val  : `%${filterString}%`
+          val  : `%${this.filterString}%`
         });
       }
     } else {
       query.filter.removeObject({
         name : globalFilter,
         op   : 'ilike',
-        val  : `%${filterString}%`
+        val  : `%${this.filterString}%`
       });
     }
 
-    columns.forEach(column => {
+    this.processedColumns.forEach(column => {
       let filter = get(column, 'filterString');
       let filterTitle = this.getCustomFilterTitle(column);
-
-      if (filter) {
+      let filterHeading = this.getFilterHeading(column);
+      let isMomentQuery = false;
+      let queryParam;
+      if (filterHeading && filterHeading === 'Date') {
+        isMomentQuery = true;
+        queryParam = moment(filter);
+      }
+      if (filter && !isMomentQuery) {
         query.filter.pushObject({
           name : filterTitle,
           op   : 'ilike',
           val  : `%${filter}%`
+        });
+      } else if (isMomentQuery && queryParam.isValid()) {
+        query.filter.pushObject({
+          name : filterTitle,
+          op   : 'ge',
+          val  : queryParam
         });
       } else {
         query.filter.removeObject({
@@ -153,16 +156,20 @@ export default ModelsTable.extend({
         });
       }
     });
-    if (!this.isDestroyed) {
-      setProperties(this, { isLoading: true, isError: false });
+    if (!this.isInitialLoad) {
+      if (!this.isDestroyed) {
+        setProperties(this, { isLoading: true, isError: false });
+      }
+      store.query(modelName, query)
+        .then(newData => setProperties(this, { isLoading: false, isError: false, filteredContent: newData }))
+        .catch(() => {
+          if (!this.isDestroyed) {
+            setProperties(this, { isLoading: false, isError: true });
+          }
+        });
+    } else {
+      this.set('isInitialLoad', false);
     }
-    store.query(modelName, query)
-      .then(newData => setProperties(this, { isLoading: false, isError: false, filteredContent: newData }))
-      .catch(() => {
-        if (!this.isDestroyed) {
-          setProperties(this, { isLoading: false, isError: true });
-        }
-      });
   },
 
   sortingWrapper(query, sortBy) {
@@ -176,6 +183,10 @@ export default ModelsTable.extend({
     return get(column, 'filteredBy') || get(column, 'propertyName');
   },
 
+  getFilterHeading(column) {
+    return get(column, 'title');
+  },
+
   pageSizeValues: computed(function() {
     return A([10, 25, 50, 100, 250, 'All']);
   }),
@@ -183,39 +194,35 @@ export default ModelsTable.extend({
   actions: {
 
     gotoNext() {
-      if (!get(this, 'gotoForwardEnabled')) {
+      if (!this.gotoForwardEnabled) {
         return;
       }
-      let pagesCount = get(this, 'pagesCount');
-      let currentPageNumber = get(this, 'currentPageNumber');
-      if (pagesCount > currentPageNumber) {
+      if (this.pagesCount > this.currentPageNumber) {
         this.incrementProperty('currentPageNumber');
       }
     },
 
     gotoPrev() {
-      if (!get(this, 'gotoBackwardEnabled')) {
+      if (!this.gotoBackwardEnabled) {
         return;
       }
-      let pagesCount = get(this, 'pagesCount');
-      if (pagesCount > 1) {
+      if (this.pagesCount > 1) {
         this.decrementProperty('currentPageNumber');
       }
     },
 
     gotoFirst() {
-      if (!get(this, 'gotoBackwardEnabled')) {
+      if (!this.gotoBackwardEnabled) {
         return;
       }
       set(this, 'currentPageNumber', 1);
     },
 
     gotoLast() {
-      if (!get(this, 'gotoForwardEnabled')) {
+      if (!this.gotoForwardEnabled) {
         return;
       }
-      let pagesCount = get(this, 'pagesCount');
-      set(this, 'currentPageNumber', pagesCount);
+      this.set('currentPageNumber', this.pagesCount);
     },
 
     sort(column) {
@@ -250,32 +257,30 @@ export default ModelsTable.extend({
   didReceiveAttrs() {
     set(this, 'pageSize', 10);
     set(this, 'currentPageNumber', 1);
-    set(this, 'filteredContent', get(this, 'data'));
+    set(this, 'filteredContent', this.data);
   },
 
   didInsertElement() {
     this._super(...arguments);
 
-    if (!get(this, 'pageSize')) {
-      set(this, 'pageSize', 10);
+    if (!this.pageSize) {
+      this.set('pageSize', 10);
     }
   },
 
   _addPropertyObserver() {
-    run.debounce(this, this._loadData, get(this, 'debounceDataLoadTime'));
+    run.debounce(this, this._loadData, this.debounceDataLoadTime);
   },
 
   willInsertElement() {
     this._super(...arguments);
-
-    let observedProperties = get(this, 'observedProperties');
-    observedProperties.forEach(propertyName => this.addObserver(propertyName, this._addPropertyObserver));
+    this.observedProperties.forEach(propertyName => this.addObserver(propertyName, this._addPropertyObserver));
   },
 
   willDestroyElement() {
     this._super(...arguments);
     this.set('isLoading', false);
-    let observedProperties = get(this, 'observedProperties');
-    observedProperties.forEach(propertyName => this.removeObserver(propertyName));
+    this.set('isInitialLoad', true);
+    this.observedProperties.forEach(propertyName => this.removeObserver(propertyName));
   }
 });
